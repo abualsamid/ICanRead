@@ -36,6 +36,7 @@ var phoneticSpelling = {
 var WordButton = React.createClass({
   propTypes: {
     wordClicked: React.PropTypes.func.isRequired,
+    nextWord: React.PropTypes.func.isRequired,
     word: React.PropTypes.string.isRequired,
     color: React.PropTypes.string.isRequired
   },
@@ -43,17 +44,31 @@ var WordButton = React.createClass({
   wordClicked() {
     this.props.wordClicked(this.props.word);
   },
+  prevWord() {
+    this.props.nextWord(-1);
+  },
+  nextWord() {
+    this.props.nextWord(1);
+  },
 
   render() {
     var labelStyles = { padding: '20px', fontSize: 'x-large', color: 'white', width: '100%'};
 
     return (
-      <div className='col-md-4 col-xs-6'>
-        <label className='label-primary text-capitalized text-center'
+      <div className='col-md-12 col-xs-12 WordButton'>
+        <a className="left carousel-control" href="#myCarousel" role="button" onClick={this.prevWord}>
+          <span className="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+          <span className="sr-only">Previous</span>
+        </a>
+        <a className="right carousel-control" href="#myCarousel" role="button" onClick={this.nextWord}>
+          <span className="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+          <span className="sr-only">Next</span>
+        </a>
+        <button className='btn btn-primary text-capitalized text-center'
           style={labelStyles}
           onClick={this.wordClicked}>
           {this.props.word}
-        </label>
+        </button>
       </div>
     );
   }
@@ -78,16 +93,50 @@ var SoundBoard = React.createClass({
     words: React.PropTypes.array.isRequired,
     color: React.PropTypes.string.isRequired
   },
+  getInitialState() {
+    return ({
+      index: 0,
+      length: this.props.words.length,
+  })},
 
+  componentDidMount() {
+    var self = this;
+    $("div.WordButton").swipe( {
+          //Generic swipe handler for all directions
+          swipe:function(event, direction, distance, duration, fingerCount, fingerData) {
+            self.nextWord( direction=="left"?-1:1 );
+          }
+          //Default is 75px, set to 0 for demo so any distance triggers swipe
+          // threshold:0
+    });
+  },
+
+
+  nextWord(dir) {
+    dir = dir || 1;
+    var index = this.state.index + dir;
+    if (index<0) {
+      index = this.state.length - 1;
+    } else {
+      if (index>=this.state.length) {
+        index=0;
+      }
+    }
+    this.setState({index: index});
+    console.log('new index is ', index);
+  },
   renderWordButtons() {
-    return this.props.words.map((word, index) => {
-      return (
-        <WordButton key={index}
-          color={this.props.color}
-          word={word}
-          wordClicked={this.props.wordClicked}/>
-      );
-    })
+    var index = this.state.index || 0;
+    var word = this.props.words[index] || "Hi";
+    return (
+      <WordButton key={index}
+        color={this.props.color}
+        word={word}
+        wordClicked={this.props.wordClicked}
+        nextWord = {this.nextWord}
+      />
+    );
+
   },
   render() {
     return (
@@ -122,7 +171,7 @@ var WordForm = React.createClass({
       <div className='row'>
         <form className='form-inline' onSubmit={this.handleSubmit} >
           <div className='form-group'>
-            <input type='text' ref='wordInput' placeHolder='word'/>
+            <input type='text' ref='wordInput' placeholder='word'/>
 
           </div>
           <button className='btn btn-primary' type='submit'>
@@ -191,6 +240,9 @@ var App = React.createClass({
     if (this.recording()) {
       this.setState({sentence: this.state.sentence.concat([word])});
     }
+  },
+  prevWord() {
+    console.log('prev');
   },
 
   toArray(obj) {
@@ -350,7 +402,7 @@ var App = React.createClass({
         <SettingsPanel/>
         <WordForm submitHandler={this.handleWordInputSubmit}/>
 
-        <SoundBoard wordClicked={this.wordClicked} words={this.state.words} color='#0078e7' />
+        <SoundBoard wordClicked={this.wordClicked}  words={this.state.words} color='#0078e7' />
         <hr />
 
         <div className='row' >
@@ -361,7 +413,6 @@ var App = React.createClass({
         </div>
         < hr/>
 
-        <SoundBoard wordClicked={this.wordClicked} words={this.state.sentences} color='#42B8DD'/>
       </div>
     );
 
