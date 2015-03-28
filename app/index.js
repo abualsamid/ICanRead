@@ -1,8 +1,8 @@
 'use strict';
 
 var React = require('react'),
-    App = require('./app'),
-    Swipe = require('jquery-touchswipe');
+  
+    App = require('./app');
 
 // No delay on clicks. https://www.npmjs.com/package/react-tap-event-plugin
 var injectTapEventPlugin = require("react-tap-event-plugin");

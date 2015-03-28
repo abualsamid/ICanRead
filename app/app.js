@@ -4,7 +4,9 @@
 // Inspiration: https://github.com/winkler1/SillySay
 var Firebase = require('firebase');
 var React = require('react');
+var Hammer = require('hammerjs');
 var FIREBASE_URL = 'https://crackling-torch-9272.firebaseio.com/';
+var Register = require('./register');
 
 var speechSettings = {
   rate: 0.1, // 0.1-10
@@ -56,11 +58,11 @@ var WordButton = React.createClass({
 
     return (
       <div className='col-md-12 col-xs-12 WordButton'>
-        <a className="left carousel-control" href="#myCarousel" role="button" onClick={this.prevWord}>
+        <a className="left carousel-control" href="javascript:void(0);" role="button" onClick={this.prevWord}>
           <span className="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
           <span className="sr-only">Previous</span>
         </a>
-        <a className="right carousel-control" href="#myCarousel" role="button" onClick={this.nextWord}>
+        <a className="right carousel-control" href="javascript:void(0);" role="button" onClick={this.nextWord}>
           <span className="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
           <span className="sr-only">Next</span>
         </a>
@@ -99,24 +101,32 @@ var SoundBoard = React.createClass({
       length: this.props.words.length,
   })},
 
-  componentDidMount() {
-    var self = this;
-    $("div.WordButton").swipe( {
-          //Generic swipe handler for all directions
-          swipe:function(event, direction, distance, duration, fingerCount, fingerData) {
-            self.nextWord( direction=="left"?-1:1 );
-          }
-          //Default is 75px, set to 0 for demo so any distance triggers swipe
-          // threshold:0
+  componentWillReceiveProps: function(nextProps) {
+    this.setState({
+      length: nextProps.words.length
     });
   },
 
+  componentDidMount() {
+    setTimeout(() => {
+      var self = this;
+      var hammerTime= new Hammer(document.getElementById('swipe'));
+      hammerTime.on('panleft panright tap press swiperight swipeleft', function(ev) {
+        self.nextWord( (ev.type=="panleft" || ev.type=="swipeleft")?-1:1 );
+      })
+
+    },300);
+  },
 
   nextWord(dir) {
     dir = dir || 1;
     var index = this.state.index + dir;
     if (index<0) {
-      index = this.state.length - 1;
+      if (this.state.length==0) {
+        index=0;
+      } else {
+        index = this.state.length - 1;
+      }
     } else {
       if (index>=this.state.length) {
         index=0;
@@ -140,7 +150,7 @@ var SoundBoard = React.createClass({
   },
   render() {
     return (
-      <div className='row'>
+      <div className='row' id='swipe'>
           {this.renderWordButtons()}
       </div>
     );
@@ -272,7 +282,6 @@ var App = React.createClass({
     this.verbsRef.on('value', (snapshot) => {
       setTimeout(() => {
         var verbs = this.toArray(snapshot.val());
-        console.log('got verbs from firebase: ', verbs);
         this.setState({verbs});
         this.setState({words: this.state.words.concat(verbs)});
 
@@ -287,7 +296,6 @@ var App = React.createClass({
     this.objectsRef.on('value', (snapshot) => {
       setTimeout(() => {
         var objects = this.toArray(snapshot.val());
-        console.log('got objects from firebase: ', objects);
         this.setState({objects});
         this.setState({words: this.state.words.concat(objects)});
 
@@ -310,6 +318,8 @@ var App = React.createClass({
         }
       }, 0);
     });
+
+
 
   },
 
@@ -391,15 +401,11 @@ var App = React.createClass({
   },
 
   render() {
-    var containerStyles = {
-      maxWidth: 900,
-      marginLeft: 'auto',
-      marginRight: 'auto'
-    };
 
     return (
       <div className='container'>
         <SettingsPanel/>
+        <Register />
         <WordForm submitHandler={this.handleWordInputSubmit}/>
 
         <SoundBoard wordClicked={this.wordClicked}  words={this.state.words} color='#0078e7' />
